@@ -975,6 +975,7 @@ void AC_PosControl::run_xy_controller(float dt)
     float kP = ekfNavVelGainScaler * _p_pos_xy.kP(); // scale gains to compensate for noisy optical flow measurement in the EKF
 
     // avoid divide by zero
+    
     if (kP <= 0.0f) {
         _vel_target.x = 0.0f;
         _vel_target.y = 0.0f;

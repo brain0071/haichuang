@@ -166,16 +166,9 @@ void Sub::guided_simPos_control_run()
     }
 
     float auto_dt = scheduler.get_loop_period_s();
-    // receive position is the distance of vehicle and target, so pos_error equal pos_target in body frame 
-    // Vector2f pos_xy_error_cm;
-    // pos_xy_error_cm.x = pos_target_cm.x;
-    // pos_xy_error_cm.y = pos_target_cm.y;
-
-
+    
     // 3-D P controller 
     Vector3f vel_target;
-    // float vel_kP = POSCONTROL_POS_XY_P;
-    // float limit_xy = POSCONTROL_ACCEL_XY;
     vel_target = AC_PosControl::sqrt_controller(pos_target_cm, POSCONTROL_POS_XY_P, POSCONTROL_ACCEL_XY);
 
     // 2-D PID    
@@ -193,10 +186,9 @@ void Sub::guided_simPos_control_run()
 
     AC_PID_2D _pid_vel_xy(POSCONTROL_VEL_XY_P, POSCONTROL_VEL_XY_I, POSCONTROL_VEL_XY_D, POSCONTROL_VEL_XY_IMAX, POSCONTROL_VEL_XY_FILT_HZ, POSCONTROL_VEL_XY_FILT_D_HZ, auto_dt);
 
-    // naodai:2023.03.04
     // update to Sub-4.0 pid controller
     Vector2f accel_target, vel_xy_p, vel_xy_i, vel_xy_d;
-    // Vector2f accel_target_xy = _pid_vel_xy.update_all(vel_target_xy, cur_xy_vel, limit_vector); //wp
+    
     // call pi controller
     _pid_vel_xy.set_input(vel_xy_error);
     // get p
@@ -207,7 +199,6 @@ void Sub::guided_simPos_control_run()
     // get d
     vel_xy_d = _pid_vel_xy.get_d();
 
-    // acceleration to correct for velocity error and scale PID output to compensate for optical flow measurement induced EKF noise
     accel_target.x = vel_xy_p.x + vel_xy_i.x + vel_xy_d.x;
     accel_target.y = vel_xy_p.y + vel_xy_i.y + vel_xy_d.y;
     
