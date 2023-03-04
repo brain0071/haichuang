@@ -462,7 +462,7 @@ void Sub::do_nav_guided_enable(const AP_Mission::Mission_Command& cmd)
 {
     if (cmd.p1 > 0) {
         // initialise guided limits
-        guided_limit_init_time_and_pos();
+        // guided_limit_init_time_and_pos();
 
         // set spline navigation target
         auto_nav_guided_start();
@@ -489,10 +489,10 @@ void Sub::do_nav_delay(const AP_Mission::Mission_Command& cmd)
 // do_guided_limits - pass guided limits to guided controller
 void Sub::do_guided_limits(const AP_Mission::Mission_Command& cmd)
 {
-    guided_limit_set(cmd.p1 * 1000, // convert seconds to ms
-                     cmd.content.guided_limits.alt_min * 100.0f,    // convert meters to cm
-                     cmd.content.guided_limits.alt_max * 100.0f,    // convert meters to cm
-                     cmd.content.guided_limits.horiz_max * 100.0f); // convert meters to cm
+    // guided_limit_set(cmd.p1 * 1000, // convert seconds to ms
+    //                  cmd.content.guided_limits.alt_min * 100.0f,    // convert meters to cm
+    //                  cmd.content.guided_limits.alt_max * 100.0f,    // convert meters to cm
+    //                  cmd.content.guided_limits.horiz_max * 100.0f); // convert meters to cm
 }
 #endif
 
@@ -650,7 +650,8 @@ bool Sub::verify_nav_guided_enable(const AP_Mission::Mission_Command& cmd)
     }
 
     // check time and position limits
-    return guided_limit_check();
+    // return guided_limit_check();
+    return true;
 }
 #endif  // NAV_GUIDED
 
@@ -740,7 +741,8 @@ bool Sub::do_guided(const AP_Mission::Mission_Command& cmd)
 
     case MAV_CMD_NAV_WAYPOINT: {
         // set wp_nav's destination
-        return guided_set_destination(cmd.content.location);
+        // return guided_set_destination(cmd.content.location);
+        return true;
     }
 
     case MAV_CMD_CONDITION_YAW:
