@@ -174,13 +174,9 @@ void Sub::guided_simPos_control_run()
 
     // 3-D P controller 
     Vector3f vel_target;
-    // Vector3f pos_error_cm;
-    // pos_error_cm = pos_target_cm; 
-    // vel_target_xy = sqrt_controller(pos_xy_error_cm, _pos_xy_P, max_accel_horizon_cmss, scheduler.get_loop_period_s());
-    // vel_target_xy = AC_AttitudeControl::sqrt_controller(pos_xy_error_cm, POSCONTROL_POS_XY_P,POSCONTROL_ACCEL_XY);
-    float vel_kP = POSCONTROL_POS_XY_P;
-    float limit_xy = POSCONTROL_ACCEL_XY;
-    vel_target = AC_PosControl::sqrt_controller(pos_target_cm, vel_kP, limit_xy);
+    // float vel_kP = POSCONTROL_POS_XY_P;
+    // float limit_xy = POSCONTROL_ACCEL_XY;
+    vel_target = AC_PosControl::sqrt_controller(pos_target_cm, POSCONTROL_POS_XY_P, POSCONTROL_ACCEL_XY);
 
     // 2-D PID    
     Vector2f vel_target_xy;
@@ -196,10 +192,6 @@ void Sub::guided_simPos_control_run()
     vel_xy_error.y = vel_target_xy.y - cur_xy_vel.y;
 
     AC_PID_2D _pid_vel_xy(POSCONTROL_VEL_XY_P, POSCONTROL_VEL_XY_I, POSCONTROL_VEL_XY_D, POSCONTROL_VEL_XY_IMAX, POSCONTROL_VEL_XY_FILT_HZ, POSCONTROL_VEL_XY_FILT_D_HZ, auto_dt);
-    // limit max angle 
-    // Vector2f limit_vector;
-    // limit_vector.x = 0;
-    // limit_vector.y = 0;
 
     // naodai:2023.03.04
     // update to Sub-4.0 pid controller
