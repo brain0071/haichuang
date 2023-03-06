@@ -523,7 +523,7 @@ void GCS_MAVLINK_Sub::handleMessage(const mavlink_message_t &msg)
 
     case MAVLINK_MSG_ID_HEARTBEAT: {    // MAV ID: 0
         // We keep track of the last time we received a heartbeat from our GCS for failsafe purposes
-        // printf("test: receive heartbeat");
+        // printf("test: receive heartbeat\n");
         if (msg.sysid != sub.g.sysid_my_gcs) {
             break;
         }
@@ -663,11 +663,14 @@ void GCS_MAVLINK_Sub::handleMessage(const mavlink_message_t &msg)
     // 
     case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE : // MAV ID: 102
     {
+        printf("test: receive vision position\n");
         mavlink_vision_position_estimate_t packet;
         mavlink_msg_vision_position_estimate_decode(&msg, &packet);
 
         // exit if vehicle is not in Guided mode or Auto-Guided mode
         if ((sub.control_mode != GUIDED) && !(sub.control_mode == AUTO && sub.auto_mode == Auto_NavGuided)) {
+           
+            printf("naodai: current mode is not guided mode.\n");
             // switch to guided mode
             if (!sub.set_mode(GUIDED, MODE_REASON_GCS_COMMAND)) 
             {
@@ -687,7 +690,9 @@ void GCS_MAVLINK_Sub::handleMessage(const mavlink_message_t &msg)
 
         // pos control (3-freedom-degree)  ---naodai custom
         if (sub.guided_set_destination_pos(pos))
-        {}
+        {
+            
+        }
         else
         {
             printf("naodai: guided mode target send failed.\n");

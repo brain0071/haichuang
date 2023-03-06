@@ -15,7 +15,7 @@
 
 // max time target position no update, loss target
 #define AUTO_GRASP_TIMEOUT_MS 3000
-#define POS_UPDATE_TIMEOUT_MS 1000
+#define POS_UPDATE_TIMEOUT_MS 10000
 #define VEL_UPDATE_TIMEOUT_MS 500
 
 // error distance less than 2,indicate grasping,position hold  
@@ -137,12 +137,12 @@ void Sub::guided_run()
 
 void Sub::guided_simPos_control_run()
 {
-    if (!motors.armed()) {
-        motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
-        gcs().send_text(MAV_SEVERITY_INFO, "motor disarm\n");
-        printf("naodai: motor disarm.\n");
-        return;
-    }
+    // if (!motors.armed()) {
+    //     motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
+    //     gcs().send_text(MAV_SEVERITY_INFO, "motor disarm\n");
+    //     printf("naodai: motor disarm.\n");
+    //     return;
+    // }
     // set motors to full range
     motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
     
