@@ -15,8 +15,8 @@
 
 // max time target position no update, loss target
 #define AUTO_GRASP_TIMEOUT_MS 3000
-#define POS_UPDATE_TIMEOUT_MS 10000
-#define VEL_UPDATE_TIMEOUT_MS 500
+#define POS_UPDATE_TIMEOUT_MS 5000
+#define VEL_UPDATE_TIMEOUT_MS 5000
 
 // error distance less than 2,indicate grasping,position hold  
 #define MAX_GRASP_DISTANCE 2  
@@ -137,32 +137,42 @@ void Sub::guided_run()
 
 void Sub::guided_simPos_control_run()
 {
-    // if (!motors.armed()) {
-    //     motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
-    //     gcs().send_text(MAV_SEVERITY_INFO, "motor disarm\n");
-    //     printf("naodai: motor disarm.\n");
-    //     return;
-    // }
+    if (!motors.armed()) {
+        motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
+        gcs().send_text(MAV_SEVERITY_INFO, "motor disarm\n");
+        sub.motors.armed(true);
+        // printf("naodai: motor disarm.\n");
+        // return;
+    }
     // set motors to full range
     motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
     
     // time out
-    uint32_t tnow = AP_HAL::millis();
-    if (tnow - pos_update_time_ms > POS_UPDATE_TIMEOUT_MS) {
+    uint32_t tnow_pos = AP_HAL::millis();
+
+    if (tnow_pos - pos_update_time_ms > POS_UPDATE_TIMEOUT_MS) {
         pos_target_cm.x = 0;
         pos_target_cm.y = 0;
         pos_target_cm.z = 0;
-        gcs().send_text(MAV_SEVERITY_INFO, "position time out.\n");
-        printf("naodai: position time out.\n");
+        gcs().send_text(MAV_SEVERITY_INFO, "position time out and set manual.\n");
+        //set mamual mode
+        sub.motors.armed(false);
+        set_mode(MANUAL, MODE_REASON_TX_COMMAND);
+        
+        return;
         
     } 
+    uint32_t tnow_vel = AP_HAL::millis();
 
-    if (tnow - vel_update_time_ms > VEL_UPDATE_TIMEOUT_MS) {
+    if (tnow_vel - vel_update_time_ms > VEL_UPDATE_TIMEOUT_MS) {
         current_vel_cm.x = 0;
         current_vel_cm.y = 0;
         current_vel_cm.z = 0;
-        gcs().send_text(MAV_SEVERITY_INFO, "velocity time out.\n");
-        printf("naodai: velocity time out.\n");
+        //set manual mode
+        sub.motors.armed(false);
+        set_mode(MANUAL, MODE_REASON_TX_COMMAND);
+        gcs().send_text(MAV_SEVERITY_INFO, "velocity time out and set manual.\n");
+        return;
     }
 
     float auto_dt = scheduler.get_loop_period_s();
@@ -217,6 +227,8 @@ void Sub::guided_simPos_control_run()
     AC_PID _pid_accel_z(POSCONTROL_ACC_Z_P, POSCONTROL_ACC_Z_I, POSCONTROL_ACC_Z_D, 0.0f, POSCONTROL_ACC_Z_IMAX, 0.0f, POSCONTROL_ACC_Z_FILT_HZ, 0.0f, auto_dt);
     float thr_out = _pid_accel_z.update_all(accel_target_z, z_accel_meas, (motors.limit.throttle_lower || motors.limit.throttle_upper)) * 0.001f +motors.get_throttle_hover();
 
+    lateral_out = lateral_out/500;
+    forward_out = forward_out/500;
     // motor input
     motors.set_lateral(lateral_out);
     motors.set_forward(forward_out);

@@ -520,6 +520,8 @@ MAV_RESULT GCS_MAVLINK_Sub::handle_command_long_packet(const mavlink_command_lon
 void GCS_MAVLINK_Sub::handleMessage(const mavlink_message_t &msg)
 {
     switch (msg.msgid) {
+        // initial manula mode
+        // set_mode(MANUAL, MODE_REASON_TX_COMMAND);
 
     case MAVLINK_MSG_ID_HEARTBEAT: {    // MAV ID: 0
         // We keep track of the last time we received a heartbeat from our GCS for failsafe purposes
