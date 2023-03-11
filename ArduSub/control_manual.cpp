@@ -24,6 +24,8 @@ void Sub::manual_run()
         attitude_control.relax_attitude_controllers();
         return;
     }
+    // naodai:2023.03.10
+    //  motors.set_interlock(false);
 
     motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
 

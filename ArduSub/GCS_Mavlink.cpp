@@ -661,20 +661,34 @@ void GCS_MAVLINK_Sub::handleMessage(const mavlink_message_t &msg)
     //     break;
     // }
 
+
+    // naodai:2023.03.09 haichuang grasping -> ping message
+    // test communication and set mode manual
+    case MAVLINK_MSG_ID_PING :
+    {
+        printf("naodai: ping connected. current control mode is %d and swith manual mode.",sub.control_mode);
+        if (sub.control_mode != MANUAL) 
+        {
+            if (!sub.set_mode(MANUAL, MODE_REASON_TX_COMMAND)) 
+            {
+                printf("naodai: switch manual failed.\n");
+                break;
+            }
+        }
+    }
+
     // naodai: 2023.03.03 haichuang grasping-> receive target position from apriltag
     // 
     case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE : // MAV ID: 102
     {
-        printf("test: receive vision position\n");
+        // printf("test: receive vision position\n");
         mavlink_vision_position_estimate_t packet;
         mavlink_msg_vision_position_estimate_decode(&msg, &packet);
 
-        // exit if vehicle is not in Guided mode or Auto-Guided mode
-        if ((sub.control_mode != GUIDED) && !(sub.control_mode == AUTO && sub.auto_mode == Auto_NavGuided)) {
-           
-            printf("naodai: current mode is not guided mode.\n");
-            // switch to guided mode
-            if (!sub.set_mode(GUIDED, MODE_REASON_GCS_COMMAND)) 
+            if (sub.control_mode != GUIDED) {
+            
+            // if (!sub.set_mode(GUIDED, MODE_REASON_GCS_COMMAND)) 
+            if (!sub.set_mode(GUIDED, MODE_REASON_TX_COMMAND)) 
             {
                 printf("naodai: switch guided failed.\n");
                 break;
@@ -714,9 +728,11 @@ void GCS_MAVLINK_Sub::handleMessage(const mavlink_message_t &msg)
         mavlink_msg_vision_speed_estimate_decode(&msg, &packet);
 
         // exit if vehicle is not in Guided mode or Auto-Guided mode
-        if ((sub.control_mode != GUIDED) && !(sub.control_mode == AUTO && sub.auto_mode == Auto_NavGuided)) {
+        if (sub.control_mode != GUIDED) {
             // switch to guided mode
-            if (!sub.set_mode(GUIDED, MODE_REASON_GCS_COMMAND)) 
+            // if (!sub.set_mode(GUIDED, MODE_REASON_GCS_COMMAND)) 
+            if (!sub.set_mode(GUIDED, MODE_REASON_TX_COMMAND)) 
+            
             {
                 printf("naodai: switch guided failed.\n");
                 break;

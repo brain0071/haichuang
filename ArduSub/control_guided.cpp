@@ -43,12 +43,32 @@
 #define GRAVITY_MSS                           9.80665f
 
 
+#define VEL_P                                 1.0f 
+#define VEL_I                                 0.5f
+#define VEL_D                                 0.0f
+#define VEL_KFF                               0.0f
+#define VEL_IMAX                              1000.0f
+#define AC_PID_TFILT_HZ_DEFAULT               5.0f
+#define AC_PID_EFILT_HZ_DEFAULT               5.0f
+#define AC_PID_DFILT_HZ_DEFAULT               5.0f
+
+
+
 
 //naodai:2022.05.11 april tag information *********************************
-static Vector3f pos_target_cm;
-static Vector3f current_vel_cm;
+static Vector3f pos_target_cm = {0.0f, 0.0f, 0.0f};
+static Vector3f current_vel_cm = {0.0f, 0.0f, 0.0f};
+
+
+// initidal control input and ouput
+static float lateral_out = 0; 
+static float forward_out = 0;
+static float thr_out = 0;
+
 static uint32_t pos_update_time_ms;
 static uint32_t vel_update_time_ms;
+
+
 
 
 
@@ -65,9 +85,22 @@ struct Guided_Limit {
 // guided_init - initialise guided controller
 bool Sub::guided_init(bool ignore_checks)
 {
-    if (!position_ok() && !ignore_checks) {
-        return false;
-    }
+    // naodai: start motor shut down
+    motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::SHUT_DOWN);
+    // if (!position_ok() && !ignore_checks) {
+    //     return false;
+    // }
+    // motor lock
+    motors.set_interlock(false);
+
+     pos_target_cm = {0.0f, 0.0f, 0.0f};
+     current_vel_cm = {0.0f, 0.0f, 0.0f};
+
+
+// initidal control input and ouput
+     lateral_out = 0; 
+      forward_out = 0;
+     thr_out = 0;
     
     return true;
 }
@@ -91,7 +124,7 @@ bool Sub::guided_set_destination_pos(const Vector3f& pos){
     pos_target_cm.y = pos.y;
     pos_target_cm.z = pos.z;
     pos_update_time_ms = AP_HAL::millis();
-    printf("position target x:%f position target y:%f position targer z:%f\n", pos_target_cm.x, pos_target_cm.y,pos_target_cm.z);
+    // printf("position target x:%f position target y:%f position targer z:%f\n", pos_target_cm.x, pos_target_cm.y,pos_target_cm.z);
     // gcs().send_text(MAV_SEVERITY_INFO, "position target x:%f position target y:%f current velocity x:%f current velocity y:%f\n", pos_target_cm.x, pos_target_cm.y,current_vel_cm.x, current_vel_cm.y);
     return true;
 }
@@ -106,7 +139,7 @@ bool Sub::guided_set_vel(const Vector3f& vel){
     current_vel_cm.y = vel.y;
     current_vel_cm.z = vel.z;
     vel_update_time_ms = AP_HAL::millis();
-    printf("current velocity x:%f current velocity y:%f current velocity z:%f\n", current_vel_cm.x, current_vel_cm.y,current_vel_cm.z);
+    // printf("current velocity x:%f current velocity y:%f current velocity z:%f\n", current_vel_cm.x, current_vel_cm.y,current_vel_cm.z);
     return true;
 }
 
@@ -137,15 +170,16 @@ void Sub::guided_run()
 
 void Sub::guided_simPos_control_run()
 {
+    printf("naodai test guide mode\n");
     if (!motors.armed()) {
-        motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
+        // motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
         gcs().send_text(MAV_SEVERITY_INFO, "motor disarm\n");
         sub.motors.armed(true);
         // printf("naodai: motor disarm.\n");
         // return;
     }
     // set motors to full range
-    motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
+    // motors.set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
     
     // time out
     uint32_t tnow_pos = AP_HAL::millis();
@@ -156,7 +190,8 @@ void Sub::guided_simPos_control_run()
         pos_target_cm.z = 0;
         gcs().send_text(MAV_SEVERITY_INFO, "position time out and set manual.\n");
         //set mamual mode
-        sub.motors.armed(false);
+        // sub.motors.armed(false);
+        motors.set_interlock(false);
         set_mode(MANUAL, MODE_REASON_TX_COMMAND);
         
         return;
@@ -169,7 +204,8 @@ void Sub::guided_simPos_control_run()
         current_vel_cm.y = 0;
         current_vel_cm.z = 0;
         //set manual mode
-        sub.motors.armed(false);
+        // sub.motors.armed(false);
+        motors.set_interlock(false);
         set_mode(MANUAL, MODE_REASON_TX_COMMAND);
         gcs().send_text(MAV_SEVERITY_INFO, "velocity time out and set manual.\n");
         return;
@@ -190,31 +226,44 @@ void Sub::guided_simPos_control_run()
     cur_xy_vel.x = current_vel_cm.x;
     cur_xy_vel.y = current_vel_cm.y;
 
+    // 1D PID-------------------------------------------------------------------------------------
+
+    AC_PID _pid_x(VEL_P, VEL_I, VEL_D, VEL_KFF, VEL_IMAX, AC_PID_TFILT_HZ_DEFAULT,  AC_PID_EFILT_HZ_DEFAULT, AC_PID_DFILT_HZ_DEFAULT, auto_dt); 
+    AC_PID _pid_y(VEL_P, VEL_I, VEL_D, VEL_KFF, VEL_IMAX, AC_PID_TFILT_HZ_DEFAULT,  AC_PID_EFILT_HZ_DEFAULT, AC_PID_DFILT_HZ_DEFAULT, auto_dt); 
+    
+    // float lateral_out,forward_out;
+    lateral_out = _pid_x.update_all(vel_target_xy.x, cur_xy_vel.x, true);
+    forward_out = _pid_y.update_all(vel_target_xy.y, cur_xy_vel.y, true);
+
+
+    // 2D PID-----------------------------------------------------------------------------------
+
     Vector2f vel_xy_error;
     vel_xy_error.x = vel_target_xy.x - cur_xy_vel.x;
     vel_xy_error.y = vel_target_xy.y - cur_xy_vel.y;
 
-    AC_PID_2D _pid_vel_xy(POSCONTROL_VEL_XY_P, POSCONTROL_VEL_XY_I, POSCONTROL_VEL_XY_D, POSCONTROL_VEL_XY_IMAX, POSCONTROL_VEL_XY_FILT_HZ, POSCONTROL_VEL_XY_FILT_D_HZ, auto_dt);
+    // AC_PID_2D _pid_vel_xy(POSCONTROL_VEL_XY_P, POSCONTROL_VEL_XY_I, POSCONTROL_VEL_XY_D, POSCONTROL_VEL_XY_IMAX, POSCONTROL_VEL_XY_FILT_HZ, POSCONTROL_VEL_XY_FILT_D_HZ, auto_dt);
 
-    // update to Sub-4.0 pid controller
-    Vector2f accel_target, vel_xy_p, vel_xy_i, vel_xy_d;
+    // // update to Sub-4.0 pid controller
+    // Vector2f accel_target, vel_xy_p, vel_xy_i, vel_xy_d;
     
-    // call pi controller
-    _pid_vel_xy.set_input(vel_xy_error);
-    // get p
-    vel_xy_p = _pid_vel_xy.get_p();
-    // update i term if we have not hit the accel or throttle limits OR the i term will reduce
-    // TODO: move limit handling into the PI and PID controller
-    vel_xy_i = _pid_vel_xy.get_i();
-    // get d
-    vel_xy_d = _pid_vel_xy.get_d();
+    // // call pi controller
+    // _pid_vel_xy.set_input(vel_xy_error);
+    // // get p
+    // vel_xy_p = _pid_vel_xy.get_p();
+    // // update i term if we have not hit the accel or throttle limits OR the i term will reduce
+    // // TODO: move limit handling into the PI and PID controller
+    // vel_xy_i = _pid_vel_xy.get_i();
+    // // get d
+    // vel_xy_d = _pid_vel_xy.get_d();
 
-    accel_target.x = vel_xy_p.x + vel_xy_i.x + vel_xy_d.x;
-    accel_target.y = vel_xy_p.y + vel_xy_i.y + vel_xy_d.y;
+    // accel_target.x = vel_xy_p.x + vel_xy_i.x + vel_xy_d.x;
+    // accel_target.y = vel_xy_p.y + vel_xy_i.y + vel_xy_d.y;
     
-    float lateral_out,forward_out;
-    lateral_out = accel_target.x;
-    forward_out = accel_target.x;
+    // float lateral_out,forward_out;
+    // lateral_out = accel_target.x;
+    // forward_out = accel_target.x;
+    //-----------------------------------------------------------------------
     
     // z-axis PID
     // velocity from pos controller
@@ -223,19 +272,24 @@ void Sub::guided_simPos_control_run()
     vel_error_z = vel_target.z - current_vel_cm.z;
     AC_P _p_vel_z(POSCONTROL_POS_Z_P);
     accel_target_z = _p_vel_z.get_p(vel_error_z);
-    float z_accel_meas = -GRAVITY_MSS * 100.0f;
+    // float z_accel_meas = -GRAVITY_MSS * 100.0f;
+    float z_accel_meas = 0.0f;
     AC_PID _pid_accel_z(POSCONTROL_ACC_Z_P, POSCONTROL_ACC_Z_I, POSCONTROL_ACC_Z_D, 0.0f, POSCONTROL_ACC_Z_IMAX, 0.0f, POSCONTROL_ACC_Z_FILT_HZ, 0.0f, auto_dt);
-    float thr_out = _pid_accel_z.update_all(accel_target_z, z_accel_meas, (motors.limit.throttle_lower || motors.limit.throttle_upper)) * 0.001f +motors.get_throttle_hover();
-
-    lateral_out = lateral_out/500;
-    forward_out = forward_out/500;
+    // float thr_out = _pid_accel_z.update_all(accel_target_z, z_accel_meas, (motors.limit.throttle_lower || motors.limit.throttle_upper)) * 0.001f +motors.get_throttle_hover();
+    thr_out = _pid_accel_z.update_all(accel_target_z, z_accel_meas, (motors.limit.throttle_lower || motors.limit.throttle_upper)) * 0.001f;
+    lateral_out = lateral_out/100;
+    forward_out = forward_out/100;
     // motor input
     motors.set_lateral(lateral_out);
     motors.set_forward(forward_out);
     motors.set_throttle(thr_out);
-
+    // if (abs(lateral_out)>0)
+    // {
     printf("naodai: forward: %f, lateral: %f, throttle: %f\n", forward_out, lateral_out, thr_out);
-    gcs().send_text(MAV_SEVERITY_INFO, "forward: %f, lateral: %f, throttle: %f\n", forward_out, lateral_out, thr_out);
+    // }
+        
+    
+    // gcs().send_text(MAV_SEVERITY_INFO, "forward: %f, lateral: %f, throttle: %f\n", forward_out, lateral_out, thr_out);
 }
 
 

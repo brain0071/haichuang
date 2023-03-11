@@ -28,8 +28,10 @@ Sub::Sub()
           control_mode(MANUAL),
           motors(MAIN_LOOP_RATE),
           scaleLongDown(1),
-          auto_mode(Auto_WP),
-          guided_mode(Guided_WP),
+          auto_mode(Auto_WP),  
+          //naodai:2023.03.10
+        //   guided_mode(Guided_WP),
+          guided_mode(Guided_Velocity),
           auto_yaw_mode(AUTO_YAW_LOOK_AT_NEXT_WP),
           G_Dt(MAIN_LOOP_SECONDS),
           inertial_nav(ahrs),

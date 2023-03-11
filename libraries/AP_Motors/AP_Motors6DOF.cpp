@@ -254,6 +254,8 @@ void AP_Motors6DOF::output_to_motors()
         break;
     case SpoolState::SPOOLING_UP:
     case SpoolState::THROTTLE_UNLIMITED:
+
+
     case SpoolState::SPOOLING_DOWN:
         // set motor output based on thrust requests
         for (i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++) {
@@ -268,6 +270,7 @@ void AP_Motors6DOF::output_to_motors()
     for (i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
             rc_write(i, motor_out[i]);
+            printf("motor output:%d\n", motor_out[i]);
         }
     }
 }

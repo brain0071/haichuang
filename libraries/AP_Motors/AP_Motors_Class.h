@@ -74,7 +74,7 @@ public:
     bool                armed() const { return _flags.armed; }
     void                armed(bool arm);
 
-    // set motor interlock status
+    // set motor interlock status  ********************
     void                set_interlock(bool set) { _flags.interlock = set;}
 
     // get motor interlock status.  true means motors run, false motors don't run
@@ -224,6 +224,7 @@ protected:
     float               _pitch_in_ff;               // desired pitch feed forward control from attitude controller, -1 ~ +1
     float               _yaw_in;                    // desired yaw control from attitude controller, -1 ~ +1
     float               _yaw_in_ff;                 // desired yaw feed forward control from attitude controller, -1 ~ +1
+    
     float               _throttle_in;               // last throttle input from set_throttle caller
     float               _forward_in;                // last forward input from set_forward caller
     float               _lateral_in;                // last lateral input from set_lateral caller
